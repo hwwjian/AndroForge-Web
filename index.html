@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d1117">
+  <title>AndroForge · 安卓逆向工作台</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="titlebar">
+      <a class="brand" href="#" aria-label="AndroForge 首页">
+        <span class="brand-mark" aria-hidden="true"><i data-lucide="scan-line"></i></span>
+        <span class="brand-name">Andro<span>Forge</span></span>
+      </a>
+
+      <button class="project-switcher" type="button" id="projectSwitcher">
+        <span class="project-app-icon"><i data-lucide="box"></i></span>
+        <span class="project-copy">
+          <strong id="projectName">打开 APK 开始分析</strong>
+          <small id="projectMeta">本地处理 · 文件不会上传</small>
+        </span>
+        <i data-lucide="chevrons-up-down"></i>
+      </button>
+
+      <div class="top-actions">
+        <button class="icon-btn" type="button" title="全局搜索" data-action="focus-search"><i data-lucide="search"></i></button>
+        <button class="icon-btn" type="button" title="命令面板" data-action="command"><i data-lucide="terminal-square"></i></button>
+        <span class="divider"></span>
+        <button class="device-pill" type="button" id="deviceButton">
+          <span class="status-dot"></span>
+          <i data-lucide="smartphone"></i>
+          <span id="deviceName">检测设备...</span>
+          <small id="deviceVersion">ADB</small>
+          <i data-lucide="chevron-down"></i>
+        </button>
+        <button class="icon-btn" type="button" title="设置" data-action="settings"><i data-lucide="settings-2"></i></button>
+        <button class="avatar" type="button" title="个人账户">L</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <nav class="activitybar" aria-label="工作区">
+        <div class="activity-main">
+          <button class="activity-btn active" type="button" data-panel="explorer" title="工程文件"><i data-lucide="files"></i><span>工程</span></button>
+          <button class="activity-btn" type="button" data-panel="search" title="全局搜索"><i data-lucide="search-code"></i><span>搜索</span></button>
+          <button class="activity-btn" type="button" data-panel="analysis" title="安全分析"><i data-lucide="shield-alert"></i><span>分析</span></button>
+          <button class="activity-btn" type="button" data-panel="intelligence" title="安全情报"><i data-lucide="newspaper"></i><span>情报</span><sup class="intel-badge" id="intelBadge" hidden>0</sup></button>
+          <button class="activity-btn" type="button" data-panel="hook" title="动态调试"><i data-lucide="radio-tower"></i><span>Hook</span></button>
+          <button class="activity-btn" type="button" data-panel="build" title="构建签名"><i data-lucide="package-check"></i><span>构建</span></button>
+        </div>
+        <button class="activity-btn" type="button" data-panel="help" title="帮助"><i data-lucide="circle-help"></i><span>帮助</span></button>
+      </nav>
+
+      <aside class="sidebar" id="sidebar">
+        <section class="side-panel active" data-panel-content="explorer">
+          <div class="panel-title"><span>工程资源</span><button class="icon-btn small" title="更多"><i data-lucide="ellipsis"></i></button></div>
+          <div class="filter-field">
+            <i data-lucide="filter"></i>
+            <input id="treeFilter" type="search" placeholder="筛选文件..." aria-label="筛选文件">
+            <kbd>⌘P</kbd>
+          </div>
+          <div class="view-tabs" role="tablist">
+            <button class="active" type="button" data-tree="apk">APK</button>
+            <button type="button" data-tree="java">Java</button>
+            <button type="button" data-tree="smali">Smali</button>
+          </div>
+          <div class="file-tree" id="fileTree"><div class="empty-tree">请先导入 APK</div></div>
+          <div class="sidebar-summary">
+            <div><span>目录</span><strong id="folderCount">--</strong></div>
+            <div><span>文件</span><strong id="fileCount">--</strong></div>
+            <div><span>风险</span><strong id="riskCount">--</strong></div>
+          </div>
+        </section>
+
+        <section class="side-panel" data-panel-content="search">
+          <div class="panel-title"><span>全局搜索</span><button class="icon-btn small"><i data-lucide="refresh-cw"></i></button></div>
+          <div class="search-stack">
+            <div class="filter-field"><i data-lucide="search"></i><input id="globalSearch" placeholder="类、方法、字符串..."></div>
+          </div>
+          <p class="result-caption">输入至少 2 个字符开始搜索</p>
+          <div class="search-results"><div class="empty-tree">暂无搜索结果</div></div>
+        </section>
+
+        <section class="side-panel" data-panel-content="analysis">
+          <div class="panel-title"><span>安全分析</span><button class="icon-btn small"><i data-lucide="sliders-horizontal"></i></button></div>
+          <button class="primary full" type="button" id="runAnalysis"><i data-lucide="play"></i><span>运行完整扫描</span></button>
+          <button class="secondary-action analysis-resume" type="button" id="resumeDecompile" hidden><i data-lucide="rotate-cw"></i><span>继续反编译</span></button>
+          <a class="secondary-action analysis-report" id="downloadReport" href="#" hidden><i data-lucide="file-down"></i><span>导出 JSON 报告</span></a>
+          <div class="analysis-score"><div class="score-ring"><strong>--</strong><small>/ 100</small></div><div><strong>尚未扫描</strong><p>导入并反编译 APK 后运行扫描</p></div></div>
+          <div class="analysis-profile" id="analysisProfile" hidden>
+            <div class="section-label">应用画像</div>
+            <div class="profile-grid">
+              <div><span>SHA-256</span><strong id="profileSha">--</strong></div>
+              <div><span>文件</span><strong id="profileFiles">0</strong></div>
+              <div><span>DEX</span><strong id="profileDex">0</strong></div>
+              <div><span>SO</span><strong id="profileNative">0</strong></div>
+              <div><span>域名</span><strong id="profileDomains">0</strong></div>
+            </div>
+            <div class="domain-list" id="domainList"></div>
+          </div>
+          <div class="section-label">风险证据</div>
+          <div class="check-list"><div class="empty-tree">暂无扫描结果</div></div>
+        </section>
+
+        <section class="side-panel" data-panel-content="intelligence">
+          <div class="panel-title"><span>安全情报</span><button class="icon-btn small" id="refreshIntelligence" title="立即抓取"><i data-lucide="refresh-cw"></i></button></div>
+          <div class="intel-summary">
+            <div><span class="status-dot"></span><strong id="intelStatus">等待抓取</strong></div>
+            <small id="intelFetchedAt">--</small>
+          </div>
+          <div class="intel-filters" role="tablist">
+            <button class="active" type="button" data-intel-filter="all">全部</button>
+            <button type="button" data-intel-filter="vulnerability">漏洞</button>
+            <button type="button" data-intel-filter="tool">工具</button>
+            <button type="button" data-intel-filter="platform">平台</button>
+            <button type="button" data-intel-filter="article">文章</button>
+          </div>
+          <div class="intel-feed" id="intelFeed"><div class="empty-tree">正在获取最新安全情报...</div></div>
+          <div class="intel-sources" id="intelSources"></div>
+        </section>
+
+        <section class="side-panel" data-panel-content="hook">
+          <div class="panel-title"><span>动态调试</span><button class="icon-btn small"><i data-lucide="plus"></i></button></div>
+          <div class="connection-card" id="fridaStatus"><span class="status-dot"></span><div><strong>Frida Server</strong><small>正在检测...</small></div><button type="button">刷新</button></div>
+          <label class="section-label">USB 进程</label>
+          <div class="script-list" id="fridaProcesses">
+            <div class="empty-tree">切换到此面板后读取 Frida 进程</div>
+          </div>
+        </section>
+
+        <section class="side-panel" data-panel-content="build">
+          <div class="panel-title"><span>重打包与签名</span><button class="icon-btn small"><i data-lucide="history"></i></button></div>
+          <label class="form-label">输出名称<input id="buildOutputName" placeholder="patched.apk"></label>
+          <label class="form-label">签名方案<select><option>Android Debug Key</option><option>选择自定义密钥...</option></select></label>
+          <div class="toggle-row"><div><strong>Zipalign</strong><small>优化 APK 数据对齐</small></div><button class="switch on" type="button" aria-label="Zipalign"></button></div>
+          <div class="toggle-row"><div><strong>V2 / V3 签名</strong><small>兼容 Android 7.0+</small></div><button class="switch on" type="button" aria-label="签名版本"></button></div>
+          <button class="primary full" type="button" id="buildButton"><i data-lucide="hammer"></i><span>构建并签名</span></button>
+          <div class="build-result" id="buildResult" hidden>
+            <a class="secondary-action" id="downloadBuild" href="#"><i data-lucide="download"></i><span>下载签名 APK</span></a>
+            <button class="secondary-action" id="installBuild" type="button"><i data-lucide="smartphone-nfc"></i><span>安装到设备</span></button>
+          </div>
+        </section>
+
+        <section class="side-panel" data-panel-content="help">
+          <div class="panel-title"><span>帮助与文档</span></div>
+          <div class="help-links">
+            <button type="button"><i data-lucide="book-open"></i><span>快速入门<small>了解常用分析流程</small></span></button>
+            <button type="button"><i data-lucide="keyboard"></i><span>快捷键<small>提升工作效率</small></span></button>
+            <button type="button"><i data-lucide="messages-square"></i><span>反馈问题<small>AndroForge 0.3.0</small></span></button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="editor-area">
+        <div class="editor-toolbar">
+          <div class="breadcrumbs"><i data-lucide="box"></i><span>未打开项目</span><i data-lucide="chevron-right"></i><strong>等待导入</strong></div>
+          <div class="editor-actions">
+            <div class="segmented"><button class="active" type="button" data-view="source">源码</button><button type="button" data-view="structure">结构</button></div>
+            <button class="icon-btn small" title="拆分编辑器"><i data-lucide="columns-2"></i></button>
+            <button class="icon-btn small" title="更多"><i data-lucide="ellipsis"></i></button>
+          </div>
+        </div>
+
+        <div class="tabbar" id="tabbar">
+          <button class="new-tab" type="button" title="打开文件"><i data-lucide="plus"></i></button>
+        </div>
+
+        <div class="job-banner" id="jobBanner" hidden>
+          <div><i data-lucide="loader-circle"></i><span id="jobStage">正在处理...</span><strong id="jobPercent">0%</strong></div>
+          <progress id="jobProgress" max="100" value="0"></progress>
+        </div>
+
+        <div class="code-workspace">
+          <div class="code-editor" id="codeEditor">
+            <div class="code-header">
+              <span class="language"><span></span> TEXT</span>
+              <span>UTF-8</span><span>LF</span>
+            </div>
+            <pre class="code" aria-label="代码编辑器"><code id="codeContent"><span class="line"><b>1</b><span>// 导入 APK 后将在此显示反编译源码</span></span></code></pre>
+          </div>
+
+          <aside class="inspector" id="inspector">
+            <div class="inspector-tabs"><button class="active" type="button">概览</button><button type="button">引用</button><button type="button">注释</button></div>
+            <div class="app-overview">
+              <div class="app-logo"><i data-lucide="notebook-tabs"></i></div>
+              <div><strong>未载入应用</strong><span>等待导入 APK</span></div>
+              <button class="icon-btn small" title="复制包名"><i data-lucide="copy"></i></button>
+            </div>
+            <dl class="metadata">
+              <div><dt>包名</dt><dd>--</dd></div>
+              <div><dt>Min SDK</dt><dd>--</dd></div>
+              <div><dt>Target SDK</dt><dd>--</dd></div>
+              <div><dt>架构</dt><dd>--</dd></div>
+              <div><dt>签名</dt><dd>--</dd></div>
+            </dl>
+            <div class="inspector-section">
+              <div class="section-heading"><strong>组件</strong><button type="button">查看全部</button></div>
+              <div class="component-grid">
+                <button type="button"><i data-lucide="layout-template"></i><strong>0</strong><span>Activity</span></button>
+                <button type="button"><i data-lucide="workflow"></i><strong>0</strong><span>Service</span></button>
+                <button type="button"><i data-lucide="radio-receiver"></i><strong>0</strong><span>Receiver</span></button>
+                <button type="button"><i data-lucide="database"></i><strong>0</strong><span>Provider</span></button>
+              </div>
+            </div>
+            <div class="inspector-section">
+              <div class="section-heading"><strong>权限风险</strong><span class="count-badge">0</span></div>
+              <div class="permission-list"><div class="empty-tree">暂无权限数据</div></div>
+            </div>
+          </aside>
+
+          <article class="intel-reader" id="intelReader" hidden>
+            <header class="intel-reader-header">
+              <button class="icon-btn" type="button" id="closeIntelReader" title="返回代码视图"><i data-lucide="arrow-left"></i></button>
+              <div>
+                <span>站内阅读</span>
+                <strong id="intelReaderSource">安全情报</strong>
+              </div>
+              <button class="icon-btn" type="button" id="copyIntelLink" title="复制原文链接"><i data-lucide="link"></i></button>
+            </header>
+            <div class="intel-reader-scroll">
+              <div class="intel-reader-content">
+                <div class="intel-reader-meta"><span id="intelReaderType">更新</span><time id="intelReaderTime">--</time></div>
+                <h1 id="intelReaderTitle">情报详情</h1>
+                <p class="intel-reader-lead" id="intelReaderSummary"></p>
+                <div class="intel-reader-tags" id="intelReaderTags"></div>
+                <section>
+                  <h2>正文</h2>
+                  <p id="intelReaderBody"></p>
+                </section>
+                <section class="intel-reader-origin">
+                  <h2>来源</h2>
+                  <div><span id="intelReaderOrigin"></span><code id="intelReaderUrl"></code></div>
+                </section>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <section class="bottom-panel" id="bottomPanel">
+          <div class="console-resizer" id="consoleResizer" role="separator" aria-orientation="horizontal" aria-label="调整底部面板高度" title="上下拖动调整面板高度" tabindex="0"><span></span></div>
+          <div class="bottom-tabs">
+            <button class="active" type="button" data-console="logcat">LOGCAT <span id="logCount">0</span></button>
+            <button type="button" data-console="build">构建输出</button>
+            <button type="button" data-console="problems">问题 <span class="warn" id="problemCount">0</span></button>
+            <div class="bottom-actions">
+              <button class="icon-btn small" title="刷新真实 Logcat" id="refreshLogcat"><i data-lucide="refresh-cw"></i></button>
+              <button class="icon-btn small" title="折叠" id="collapseConsole"><i data-lucide="chevron-down"></i></button>
+            </div>
+          </div>
+          <div class="console-body">
+            <div class="console-filter"><button type="button"><i data-lucide="pause"></i></button><select><option>Verbose</option><option>Debug</option><option>Info</option><option>Warn</option><option>Error</option></select><div><i data-lucide="search"></i><input placeholder="筛选日志"></div></div>
+            <div class="logs" id="logs">
+              <p><time>--:--:--</time><span class="pid">EMPTY</span><span class="level info">I</span><strong>AndroForge</strong><span>尚未读取 Logcat</span></p>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="statusbar">
+      <div><span class="connected"><i data-lucide="usb"></i>正在检测设备</span><span id="projectStateStatus"><i data-lucide="box"></i>未载入项目</span></div>
+      <div><span>UTF-8</span><span id="fileLanguage">TEXT</span><span><i data-lucide="bell"></i></span></div>
+    </footer>
+  </div>
+
+  <div class="command-overlay" id="commandOverlay" aria-hidden="true">
+    <div class="command-dialog" role="dialog" aria-modal="true" aria-label="命令面板">
+      <div class="command-input"><i data-lucide="terminal"></i><input id="commandInput" placeholder="输入命令或搜索功能..."><kbd>Esc</kbd></div>
+      <div class="command-list">
+        <button type="button" data-command="open"><i data-lucide="folder-open"></i><span><strong>打开 APK</strong><small>载入新的应用包</small></span><kbd>Ctrl O</kbd></button>
+        <button type="button" data-command="scan"><i data-lucide="scan-search"></i><span><strong>运行完整安全扫描</strong><small>静态分析权限、组件和代码</small></span></button>
+        <button type="button" data-command="intelligence"><i data-lucide="newspaper"></i><span><strong>刷新安全情报</strong><small>抓取工具版本、漏洞与平台更新</small></span></button>
+        <button type="button" data-command="frida"><i data-lucide="radio-tower"></i><span><strong>查看 Frida 进程</strong><small>连接 USB 设备上的进程</small></span></button>
+        <button type="button" data-command="build"><i data-lucide="package-check"></i><span><strong>构建、签名并安装</strong><small>输出修改后的 APK</small></span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><i data-lucide="circle-check"></i><span>操作已完成</span></div>
+  <input id="apkInput" type="file" accept=".apk,application/vnd.android.package-archive" hidden>
+
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
